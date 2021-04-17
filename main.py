@@ -1,9 +1,9 @@
 import time
-
+from datetime import datetime
 import requests
 import json
 import tqdm
-from tokens import ya_token, vk_token, vk_service_token
+from tokens import ya_token, vk_token, vk_service_token, ok_token
 ROOTDIR = 'diplomupload'
 
 class YaUploader:
@@ -72,7 +72,8 @@ class VkAPI:
                     maxsize = size.get('height') + size.get('width')
                     photo_url = size.get('url')
                     photo_size = size.get('type')
-            output += [(photo['id'], photo_url, photo['likes']['count'], photo_size)]
+            photo_date = datetime.utcfromtimestamp(photo['date']).strftime('%Y-%m-%d_%H.%M.%S')
+            output += [(photo_date, photo_url, photo['likes']['count'], photo_size)]
         return output
 
     def get_user_albums(self, owner_id=None):
