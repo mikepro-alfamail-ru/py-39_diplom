@@ -86,8 +86,6 @@ class VkAPI:
         }
         if owner_id == self.owner_id:
             album_params['access_token'] = vk_service_token
-        print(album_params)
-        print(requests.get(self.apiurl + 'photos.getAlbums', album_params).json())
         return requests.get(self.apiurl + 'photos.getAlbums', album_params).json()['response']['items']
 
     def get_user_id(self, username):
