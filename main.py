@@ -1,9 +1,13 @@
 import time
 from datetime import datetime
+from hashlib import md5
+
 import requests
 import json
 import tqdm
-from tokens import ya_token, vk_token, vk_service_token, ok_token
+from tokens import ya_token, vk_token, vk_service_token
+import ok_tokens
+
 ROOTDIR = 'diplomupload'
 
 class YaUploader:
@@ -95,7 +99,48 @@ class VkAPI:
         }
         return requests.get(self.apiurl + 'users.get', params).json()['response'][0]['id']
 
-def main():
+class OkAPI:
+    apiurl = 'https://api.ok.ru/fb.do'
+
+    def __init__(self):
+        fields = 'user_photo.PIC_MAX,user_photo.LIKE_COUNT,user_photo.CREATED_MS'
+        #sig = ''
+
+        sig = md5(f'application_key={ok_tokens.pub_key}fields={fields}format=jsonmethod=photos.getPhotos{ok_tokens.session_secret_key}'.encode()).hexdigest()
+        # print(f'application_key={ok_tokens.pub_key}fields={fields}format=jsonmethod=photos.getPhotos{ok_tokens.session_secret_key}')
+        # print(sig)
+        self.params = {
+            'application_key': ok_tokens.pub_key,
+            'fields': fields,
+            'format': 'json',
+            'method': 'photos.getPhotos',
+            'sig': sig,
+            'access_token': ok_tokens.access_token
+        }
+
+    def get_photos_list(self, album_id = None):
+        if album_id != None:
+            sig = md5(
+                f'aid={album_id}application_key={ok_tokens.pub_key}fields={fields}format=jsonmethod=photos.getPhotos{ok_tokens.session_secret_key}'.encode()).hexdigest()
+            self.params.update({
+                'aid': album_id,
+                'sig': sig
+            })
+        response = requests.get(self.apiurl, self.params)
+        response_dict = response.json()
+        if response_dict.get('error_code'):
+            return 'Error', response_dict.get('error_code')
+        else:
+            output = []
+
+            for photo in response_dict.get('photos'):
+                photo_date = datetime.utcfromtimestamp(photo['created_ms'] // 1000).strftime('%Y-%m-%d_%H.%M.%S')
+                output += [(photo_date, photo['pic_max'], photo['like_count'], 'max')]
+            return output
+
+        # pass
+
+def get_photos_vk():
 
     print('Получаем данные из vk...')
 
@@ -131,7 +176,11 @@ def main():
     else:
         number_of_photos = 5
     photos_list = photos_list[:number_of_photos]
+    return photos_list, owner_id, album_title
 
+
+
+def upload_to_ya(photos_list, owner_id, album_title):
     ya_token_input = input('Введите токен с полигона Яндекса: ')
     if ya_token_input:
         uploader = YaUploader(ya_token_input)
@@ -171,4 +220,6 @@ def main():
     with open('log.json', 'w', encoding='utf8') as logfile:
         json.dump(log, logfile, indent=4, ensure_ascii=False)
 
-main()
+#upload_to_ya(*get_photos_vk())
+ok = OkAPI()
+upload_to_ya(ok.get_photos_list(), 'mikepro_ok', 'Личные')
