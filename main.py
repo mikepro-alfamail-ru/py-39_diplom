@@ -103,28 +103,30 @@ class OkAPI:
     apiurl = 'https://api.ok.ru/fb.do'
 
     def __init__(self):
-        fields = 'user_photo.PIC_MAX,user_photo.LIKE_COUNT,user_photo.CREATED_MS'
-        #sig = ''
 
-        sig = md5(f'application_key={ok_tokens.pub_key}fields={fields}format=jsonmethod=photos.getPhotos{ok_tokens.session_secret_key}'.encode()).hexdigest()
-        # print(f'application_key={ok_tokens.pub_key}fields={fields}format=jsonmethod=photos.getPhotos{ok_tokens.session_secret_key}')
-        # print(sig)
         self.params = {
             'application_key': ok_tokens.pub_key,
-            'fields': fields,
             'format': 'json',
-            'method': 'photos.getPhotos',
-            'sig': sig,
             'access_token': ok_tokens.access_token
         }
 
     def get_photos_list(self, album_id = None):
+        fields = 'user_photo.PIC_MAX,user_photo.LIKE_COUNT,user_photo.CREATED_MS'
+        self.params.update({
+            'fields': fields,
+            'method': 'photos.getPhotos',
+        })
         if album_id != None:
             sig = md5(
                 f'aid={album_id}application_key={ok_tokens.pub_key}fields={fields}format=jsonmethod=photos.getPhotos{ok_tokens.session_secret_key}'.encode()).hexdigest()
             self.params.update({
                 'aid': album_id,
                 'sig': sig
+            })
+        else:
+            sig = md5(f'application_key={ok_tokens.pub_key}fields={fields}format=jsonmethod=photos.getPhotos{ok_tokens.session_secret_key}'.encode()).hexdigest()
+            self.params.update({
+                'sig': sig,
             })
         response = requests.get(self.apiurl, self.params)
         response_dict = response.json()
@@ -138,7 +140,25 @@ class OkAPI:
                 output += [(photo_date, photo['pic_max'], photo['like_count'], 'max')]
             return output
 
-        # pass
+    def get_albums(self):
+        sig = md5(
+            f'application_key={ok_tokens.pub_key}format=jsonmethod=photos.getAlbums{ok_tokens.session_secret_key}'.encode()).hexdigest()
+        self.params.update({
+            'method': 'photos.getAlbums',
+            'sig': sig
+        })
+        response = requests.get(self.apiurl, self.params)
+        response_dict = response.json()
+
+        if response_dict.get('error_code'):
+            return 'Error', response_dict.get('error_code')
+        else:
+            output = []
+            for album in response_dict.get('albums'):
+                output += [
+                    (album['aid'], album['title'])
+                ]
+            return output
 
 def get_photos_vk():
 
@@ -222,4 +242,7 @@ def upload_to_ya(photos_list, owner_id, album_title):
 
 #upload_to_ya(*get_photos_vk())
 ok = OkAPI()
-upload_to_ya(ok.get_photos_list(), 'mikepro_ok', 'Личные')
+id, name = ok.get_albums()[0]
+
+print(ok.get_photos_list())
+upload_to_ya(ok.get_photos_list(id), 'mikepro_ok', name)
