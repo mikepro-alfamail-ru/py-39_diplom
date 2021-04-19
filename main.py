@@ -103,12 +103,20 @@ class OkAPI:
     apiurl = 'https://api.ok.ru/fb.do'
 
     def __init__(self):
-
         self.params = {
             'application_key': ok_tokens.pub_key,
             'format': 'json',
-            'access_token': ok_tokens.access_token
+            'access_token': ok_tokens.access_token,
         }
+        sig = md5(f'application_key={ok_tokens.pub_key}format=jsonmethod=users.getCurrentUser{ok_tokens.session_secret_key}'.encode()).hexdigest()
+        user_params = {
+            **self.params,
+            'method': 'users.getCurrentUser',
+            'sig': sig
+        }
+        response = requests.get(self.apiurl, user_params)
+        self.uid = response.json()['uid']
+
 
     def get_photos_list(self, album_id = None):
         fields = 'user_photo.PIC_MAX,user_photo.LIKE_COUNT,user_photo.CREATED_MS'
@@ -240,9 +248,11 @@ def upload_to_ya(photos_list, owner_id, album_title):
     with open('log.json', 'w', encoding='utf8') as logfile:
         json.dump(log, logfile, indent=4, ensure_ascii=False)
 
-#upload_to_ya(*get_photos_vk())
+#Работа с VK
+upload_to_ya(*get_photos_vk())
+
+#Работа с Одноклассниками
 ok = OkAPI()
 id, name = ok.get_albums()[0]
-
 print(ok.get_photos_list())
-upload_to_ya(ok.get_photos_list(id), 'mikepro_ok', name)
+upload_to_ya(ok.get_photos_list(), 'mikepro_ok', 'Личные')
