@@ -1,10 +1,12 @@
 import time
-from datetime import datetime
-from hashlib import md5
-
 import requests
 import json
 import tqdm
+
+from pprint import pprint
+from datetime import datetime
+from hashlib import md5
+
 from tokens import ya_token, vk_token, vk_service_token
 import ok_tokens
 
@@ -206,7 +208,39 @@ def get_photos_vk():
     photos_list = photos_list[:number_of_photos]
     return photos_list, owner_id, album_title
 
+def get_photos_ok():
 
+    print('Получаем данные из ok...')
+
+    ok = OkAPI()
+
+
+    album_id_input = input('Enter для Личных фото или введите что угодно для просмотра списка альбомов: ')
+    album_id = None
+    album_title = 'Личные фото'
+
+    if album_id_input:
+        user_albums = ok.get_albums()
+        if len(user_albums) > 0:
+            albums_dict = {}
+            for album_id, album_title in user_albums:
+                albums_dict.update({album_id: album_title})
+                print(f"id: {album_id}, Название: {album_title}")
+            album_id = input('Введите id альбома: ')
+            album_title = albums_dict[album_id]
+        else:
+            print('Нет альбомов, возьмем личные')
+
+    photos_list = ok.get_photos_list(album_id)
+    print(f'Всего фотографий в альбоме: {len(photos_list)}.')
+
+    number_of_photos_input = input('Сколько фотографий грузить? (По умолчанию - 5): ')
+    if number_of_photos_input:
+        number_of_photos = int(number_of_photos_input)
+    else:
+        number_of_photos = 5
+    photos_list = photos_list[:number_of_photos]
+    return photos_list, 'ok photos', album_title
 
 def upload_to_ya(photos_list, owner_id, album_title):
     ya_token_input = input('Введите токен с полигона Яндекса: ')
@@ -248,11 +282,13 @@ def upload_to_ya(photos_list, owner_id, album_title):
     with open('log.json', 'w', encoding='utf8') as logfile:
         json.dump(log, logfile, indent=4, ensure_ascii=False)
 
-#Работа с VK
-upload_to_ya(*get_photos_vk())
+commands = {
+    'ok': get_photos_ok,
+    'vk': get_photos_vk
+}
 
-#Работа с Одноклассниками
-ok = OkAPI()
-id, name = ok.get_albums()[0]
-print(ok.get_photos_list())
-upload_to_ya(ok.get_photos_list(), 'mikepro_ok', 'Личные')
+#upload_to_ya(*get_photos_vk())
+
+command = input('ok or vk? ')
+if command in commands:
+    pprint(commands[command]())
