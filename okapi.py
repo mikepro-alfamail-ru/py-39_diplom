@@ -4,6 +4,7 @@ from hashlib import md5
 
 import ok_tokens
 
+
 class OkAPI:
     apiurl = 'https://api.ok.ru/fb.do'
 
@@ -13,7 +14,8 @@ class OkAPI:
             'format': 'json',
             'access_token': ok_tokens.access_token,
         }
-        sig = md5(f'application_key={ok_tokens.pub_key}format=jsonmethod=users.getCurrentUser{ok_tokens.session_secret_key}'.encode()).hexdigest()
+        sig = md5(f'application_key={ok_tokens.pub_key}format=jsonmethod=users.getCurrentUser'
+                  '{ok_tokens.session_secret_key}'.encode()).hexdigest()
         user_params = {
             **self.params,
             'method': 'users.getCurrentUser',
@@ -22,22 +24,23 @@ class OkAPI:
         response = requests.get(self.apiurl, user_params)
         self.uid = response.json()['uid']
 
-
-    def get_photos_list(self, album_id = None):
+    def get_photos_list(self, album_id=None):
         fields = 'user_photo.PIC_MAX,user_photo.LIKE_COUNT,user_photo.CREATED_MS'
         self.params.update({
             'fields': fields,
             'method': 'photos.getPhotos',
         })
-        if album_id != None:
-            sig = md5(
-                f'aid={album_id}application_key={ok_tokens.pub_key}fields={fields}format=jsonmethod=photos.getPhotos{ok_tokens.session_secret_key}'.encode()).hexdigest()
+        if album_id is not None:
+            sig = md5(f'aid={album_id}application_key={ok_tokens.pub_key}fields={fields}'
+                      'format=jsonmethod=photos.getPhotos'
+                      '{ok_tokens.session_secret_key}'.encode()).hexdigest()
             self.params.update({
                 'aid': album_id,
                 'sig': sig
             })
         else:
-            sig = md5(f'application_key={ok_tokens.pub_key}fields={fields}format=jsonmethod=photos.getPhotos{ok_tokens.session_secret_key}'.encode()).hexdigest()
+            sig = md5(f'application_key={ok_tokens.pub_key}fields={fields}format=jsonmethod=photos.getPhotos'
+                      '{ok_tokens.session_secret_key}'.encode()).hexdigest()
             self.params.update({
                 'sig': sig,
             })
@@ -54,8 +57,8 @@ class OkAPI:
             return output
 
     def get_albums(self):
-        sig = md5(
-            f'application_key={ok_tokens.pub_key}format=jsonmethod=photos.getAlbums{ok_tokens.session_secret_key}'.encode()).hexdigest()
+        sig = md5(f'application_key={ok_tokens.pub_key}format=jsonmethod=photos.getAlbums'
+                  '{ok_tokens.session_secret_key}'.encode()).hexdigest()
         self.params.update({
             'method': 'photos.getAlbums',
             'sig': sig
