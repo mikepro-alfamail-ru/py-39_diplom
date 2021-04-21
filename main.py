@@ -55,6 +55,7 @@ def get_photos_ok():
     print('Получаем данные из ok...')
 
     ok = OkAPI()
+    friend_id = input('Введите id друга, или просто Enter: ')
 
     album_id_input = input('Enter для Личных фото или введите что угодно для просмотра списка альбомов: ')
     album_id = None
@@ -131,10 +132,12 @@ def main():
         'vk': get_photos_vk
     }
 
-    command = input('ok or vk? ')
-    if command in commands:
-        pprint(commands[command]())
-        # upload_to_yadisk(*commands[command]())
+    command = ''
+    while command != 'q':
+        command = input('ok or vk? ')
+        if command in commands:
+            pprint(commands[command]())
+            # upload_to_yadisk(*commands[command]())
 
 
 if __name__ == "__main__":

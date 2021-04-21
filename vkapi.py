@@ -33,7 +33,7 @@ class VkAPI:
             photo_url = ''
             photo_size = ''
             for size in photo['sizes']:
-                if maxsize < size.get('height') + size.get('width'):
+                if maxsize <= size.get('height') + size.get('width'):
                     maxsize = size.get('height') + size.get('width')
                     photo_url = size.get('url')
                     photo_size = size.get('type')
