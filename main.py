@@ -55,7 +55,6 @@ def get_photos_ok():
     print('Получаем данные из ok...')
 
     ok = OkAPI()
-    friend_id = input('Введите id друга, или просто Enter: ')
 
     album_id_input = input('Enter для Личных фото или введите что угодно для просмотра списка альбомов: ')
     album_id = None
@@ -85,26 +84,7 @@ def get_photos_ok():
     return photos_list, 'ok photos', album_title
 
 
-def upload_to_yadisk(photos_list, owner_id, album_title):
-    ya_token_input = input('Введите токен с полигона Яндекса: ')
-    if ya_token_input:
-        uploader = YaUploader(ya_token_input)
-    else:
-        uploader = YaUploader()
-
-    path = f'/{ROOTDIR}/{owner_id}/{album_title}'
-    temp_path = ''
-    print()
-
-    print('Проверка пути на диске, создание папок...')
-    for folder in tqdm.tqdm(path.split('/'), bar_format='{l_bar}{bar}|'):
-        temp_path += folder + '/'
-        uploader.check_path(temp_path)
-    print()
-
-    print('Загружаем...')
-    time.sleep(0.1)
-
+def upload_to_yadisk(uploader, photos_list, path):
     log = []
     for photo_id, photo_url, likes_count, photo_size in tqdm.tqdm(photos_list):
         filename = f'{likes_count}_likes_{photo_id}.jpg'
@@ -114,6 +94,13 @@ def upload_to_yadisk(photos_list, owner_id, album_title):
 
         if upload_result != 201:
             print(f'Ошибка на стороне яндекса, файл с id {photo_id} не загружен: {upload_result}')
+            log.append(
+                {
+                    'filename': filename,
+                    'size': photo_size,
+                    'result': upload_result
+                }
+            )
         else:
             log.append(
                 {
@@ -121,9 +108,7 @@ def upload_to_yadisk(photos_list, owner_id, album_title):
                     'size': photo_size
                 }
             )
-
-    with open('log.json', 'w', encoding='utf8') as logfile:
-        json.dump(log, logfile, indent=4, ensure_ascii=False)
+    return log
 
 
 def main():
@@ -136,8 +121,25 @@ def main():
     while command != 'q':
         command = input('ok or vk? ')
         if command in commands:
-            pprint(commands[command]())
-            # upload_to_yadisk(*commands[command]())
+            photos_list, owner_id, album_title = commands[command]()
+            path = f'/{ROOTDIR}/{owner_id}/{album_title}'
+
+            ya_token_input = input('Введите токен с полигона Яндекса: ')
+            if ya_token_input:
+                uploader = YaUploader(ya_token_input)
+            else:
+                uploader = YaUploader()
+
+            print('Проверка пути на диске, создание папок...')
+            temp_path = ''
+            for folder in tqdm.tqdm(path.split('/'), bar_format='{l_bar}{bar}|'):
+                temp_path += folder + '/'
+                uploader.check_path(temp_path)
+
+            print('Загружаем...')
+            log = upload_to_yadisk(uploader, photos_list, path)
+            with open('log.json', 'w', encoding='utf8') as logfile:
+                json.dump(log, logfile, indent=4, ensure_ascii=False)
 
 
 if __name__ == "__main__":
